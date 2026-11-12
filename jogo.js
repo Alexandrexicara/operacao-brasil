@@ -121,12 +121,13 @@ const status=document.getElementById("status-missao");
 try{
 if(status)status.textContent="🌍 Preparando o mundo 3D aberto...";
 const M=await carregarCesium();
-mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:new M.EllipsoidTerrainProvider(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",credit:"© OpenStreetMap contributors"}),requestRenderMode:false});
+mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:new M.EllipsoidTerrainProvider(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",credit:"Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}),requestRenderMode:false});
 try{mapa.terrainProvider=await M.CesiumTerrainProvider.fromUrl("https://assets.agi.com/stk-terrain/world",{requestVertexNormals:true});}catch(erro){console.warn("Terreno global indisponível; usando globo base:",erro);}
 mapa.scene.globe.depthTestAgainstTerrain=false;mapa.scene.screenSpaceCameraController.minimumZoomDistance=35;mapa.scene.screenSpaceCameraController.maximumZoomDistance=250000;mapa.scene.globe.enableLighting=true;
 handlerMapa=new M.ScreenSpaceEventHandler(mapa.scene.canvas);
 handlerMapa.setInputAction(e=>{if(!jogoAtivo)return;const cart=mapa.camera.pickEllipsoid(e.position,mapa.scene.globe.ellipsoid);if(!cart)return;const c=M.Cartographic.fromCartesian(cart);iniciarDeslocamento([M.Math.toDegrees(c.longitude),M.Math.toDegrees(c.latitude)]);},M.ScreenSpaceEventType.LEFT_CLICK);
 const missao=MISSOES[faseAtual];await mapa.camera.flyTo({destination:M.Cartesian3.fromDegrees(missao.origem[0],missao.origem[1],1800),orientation:{heading:0,pitch:M.Math.toRadians(-48),roll:0},duration:1.2});
+mapa.scene.globe.baseColor=M.Color.fromCssColorString("#263746");
 colocarMarcadores(missao.origem,missao.destino);carregarPrediosOSM(missao.origem);
 if(status)status.textContent="🌎 Mapa 3D aberto carregado. Clique no mapa ou use WASD para se deslocar.";
 }catch(erro){console.error("Falha ao iniciar CesiumJS:",erro);if(status)status.textContent="⚠️ Não foi possível carregar o mapa 3D. Verifique a conexão e recarregue.";}
