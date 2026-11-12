@@ -19,7 +19,7 @@ const MISSOES = [
   {id:10,nome:"Missão Final",origem:[-43.80,-19.60],destino:[-43.93,-19.72],tempoLimite:420,transporte:"carro",horario:"dia",dica:"Volte à base!"}
 ];
 
-let mapa=null,handlerMapa=null,entidadeJogador=null,entidadeDestino=null,entidadesItens=[],entidadesPredios=[],carregandoPredios=false;
+let mapa=null,handlerMapa=null,entidadeJogador=null,entidadeDestino=null,entidadesItens=[],entidadesPredios=[],carregandoPredios=false,partesPersonagem=[];
 let faseAtual = 0;
 let tempoRestante = 300;
 let contadorInterval = null;
@@ -142,7 +142,7 @@ entidadesPredios.push(mapa.entities.add({name:tags.name||"Edificação OpenStree
 }
 function ajustarMapa(){if(!mapa||mapa.isDestroyed())return;const m=MISSOES[faseAtual];mapa.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(m.origem[0],m.origem[1],1500),orientation:{heading:0,pitch:Cesium.Math.toRadians(-48),roll:0},duration:1});colocarMarcadores(m.origem,m.destino);carregarPrediosOSM(m.origem);}
 function distanciaMetros(a,b){const r=Math.PI/180,dl=(b[1]-a[1])*r,dg=(b[0]-a[0])*r,l1=a[1]*r,l2=b[1]*r,h=Math.sin(dl/2)**2+Math.cos(l1)*Math.cos(l2)*Math.sin(dg/2)**2;return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
-function moverCameraParaJogador(){if(!mapa||!posicaoJogador)return;mapa.camera.setView({destination:Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],900),orientation:{heading:mapa.camera.heading,pitch:Cesium.Math.toRadians(-48),roll:0}});}
+function moverCameraParaJogador(){if(!mapa||!posicaoJogador)return;const alvo=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],1.35);mapa.camera.lookAt(alvo,new Cesium.HeadingPitchRange(mapa.camera.heading,Cesium.Math.toRadians(-18),42));mapa.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);}
 function interpolarCoordenada(inicio, fim, proporcao) {
   return [
     inicio[0] + (fim[0] - inicio[0]) * proporcao,
@@ -151,8 +151,32 @@ function interpolarCoordenada(inicio, fim, proporcao) {
 }
 
 function criarMarcadorItem(coordenada,indice){const e=mapa.entities.add({name:"Suprimentos",position:Cesium.Cartesian3.fromDegrees(coordenada[0],coordenada[1],12),point:{pixelSize:15,color:Cesium.Color.YELLOW,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"📦",font:"22px sans-serif",pixelOffset:new Cesium.Cartesian2(0,-22),disableDepthTestDistance:Number.POSITIVE_INFINITY}});entidadesItens.push({entidade:e,coordenada,indice,coletado:false});}
+function coordenadaLocal(base,leste,norte,altura){const lat=base[1]+norte/111320;const lng=base[0]+leste/(111320*Math.max(.2,Math.cos(base[1]*Math.PI/180)));return Cesium.Cartesian3.fromDegrees(lng,lat,altura);}
+function criarPersonagem3D(){
+  partesPersonagem.forEach(p=>mapa.entities.remove(p));partesPersonagem=[];
+  const pele=Cesium.Color.fromCssColorString("#A9683F"),peleEscura=Cesium.Color.fromCssColorString("#754329");
+  const roupa=Cesium.Color.fromCssColorString("#202B35"),roupaClara=Cesium.Color.fromCssColorString("#394957"),preto=Cesium.Color.fromCssColorString("#101418");
+  const pecas=[
+    {nome:"Tronco",l:0,n:0,z:1.12,rx:.29,ry:.19,rz:.43,cor:roupa},
+    {nome:"Colete tático",l:0,n:-.012,z:1.20,rx:.30,ry:.195,rz:.30,cor:roupaClara},
+    {nome:"Cabeça",l:0,n:0,z:1.78,rx:.165,ry:.15,rz:.20,cor:pele},
+    {nome:"Cabelo",l:0,n:0,z:1.94,rx:.17,ry:.155,rz:.085,cor:preto},
+    {nome:"Braço esquerdo",l:-.34,n:0,z:1.20,rx:.115,ry:.115,rz:.36,cor:roupa},
+    {nome:"Braço direito",l:.34,n:0,z:1.20,rx:.115,ry:.115,rz:.36,cor:roupa},
+    {nome:"Mão esquerda",l:-.35,n:0,z:.79,rx:.085,ry:.08,rz:.10,cor:pele},
+    {nome:"Mão direita",l:.35,n:0,z:.79,rx:.085,ry:.08,rz:.10,cor:pele},
+    {nome:"Perna esquerda",l:-.15,n:0,z:.48,rx:.135,ry:.14,rz:.38,cor:preto},
+    {nome:"Perna direita",l:.15,n:0,z:.48,rx:.135,ry:.14,rz:.38,cor:preto},
+    {nome:"Bota esquerda",l:-.15,n:.07,z:.12,rx:.14,ry:.22,rz:.11,cor:preto},
+    {nome:"Bota direita",l:.15,n:.07,z:.12,rx:.14,ry:.22,rz:.11,cor:preto},
+    {nome:"Cinto",l:0,n:0,z:.83,rx:.29,ry:.19,rz:.055,cor:peleEscura}
+  ];
+  pecas.forEach(p=>{const e=mapa.entities.add({name:"Agente — "+p.nome,position:coordenadaLocal(posicaoJogador,p.l,p.n,p.z),orientation:Cesium.Transforms.headingPitchRollQuaternion(coordenadaLocal(posicaoJogador,0,0,0),new Cesium.HeadingPitchRoll(0,0,0)),ellipsoid:{radii:new Cesium.Cartesian3(p.rx,p.ry,p.rz),material:p.cor,subdivisions:16}});partesPersonagem.push({entidade:e,peca:p});});
+  entidadeJogador=partesPersonagem[0]?.entidade||null;
+}
+function atualizarPersonagem3D(){if(!mapa||!posicaoJogador||!partesPersonagem.length)return;const base=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],0);const orientacao=Cesium.Transforms.headingPitchRollQuaternion(base,new Cesium.HeadingPitchRoll(0,0,0));partesPersonagem.forEach(({entidade,peca})=>{entidade.position=coordenadaLocal(posicaoJogador,peca.l,peca.n,peca.z);entidade.orientation=orientacao;});}
 function colocarMarcadores(origem,destino){if(!mapa||!Cesium)return;if(entidadeJogador)mapa.entities.remove(entidadeJogador);if(entidadeDestino)mapa.entities.remove(entidadeDestino);entidadesItens.forEach(i=>mapa.entities.remove(i.entidade));entidadesItens=[];posicaoJogador=[...origem];destinoMovimento=null;
-entidadeJogador=mapa.entities.add({name:"Jogador",position:Cesium.Cartesian3.fromDegrees(origem[0],origem[1],0),point:{heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,pixelSize:17,color:Cesium.Color.LIME,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"JOGADOR",font:"bold 12px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-25),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+criarPersonagem3D();
 entidadeDestino=mapa.entities.add({name:"Destino da missão",position:Cesium.Cartesian3.fromDegrees(destino[0],destino[1],0),point:{heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,pixelSize:18,color:Cesium.Color.RED,outlineColor:Cesium.Color.WHITE,outlineWidth:3},label:{text:"DESTINO",font:"bold 13px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-26),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
 [.25,.5,.75].forEach((p,i)=>{if(!itensColetados.includes(i))criarMarcadorItem(interpolarCoordenada(origem,destino,p),i);});atualizarInventario();atualizarProgresso();}
 function carregarFase(indice) {
@@ -218,7 +242,7 @@ function iniciarDeslocamento(destino) {
 
     if (distancia < 4) {
       posicaoJogador = [...destinoMovimento];
-      if(entidadeJogador)entidadeJogador.position=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],0);
+      atualizarPersonagem3D();
       destinoMovimento = null;
       atualizarProgresso();
       verificarChegada();
@@ -228,7 +252,7 @@ function iniciarDeslocamento(destino) {
     const metros = VELOCIDADES[transporteAtual] * delta;
     const fracao = Math.min(1, metros / distancia);
     posicaoJogador = interpolarCoordenada(posicaoJogador, destinoMovimento, fracao);
-    if(entidadeJogador)entidadeJogador.position=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],8);
+    atualizarPersonagem3D();
 
     if(instante-ultimoAcompanhamentoCamera>650){moverCameraParaJogador();ultimoAcompanhamentoCamera=instante;}
 
