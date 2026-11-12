@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎯 OPERAÇÃO BRASIL — Fase 1.0</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="./node_modules/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+  <script type="module">
+    import * as maplibregl from './node_modules/maplibre-gl/dist/maplibre-gl.mjs';
+    window.maplibregl = maplibregl;
+  </script>
+</head>
+<body>
+
+<!-- 🔒 TELA DE CARREGAMENTO -->
+<div id="tela-carregamento" class="tela-tela">
+  <div class="caixa-carregamento">
+    <div class="logo-jogo">🎯</div>
+    <h1>OPERAÇÃO BRASIL</h1>
+    <p>Carregando sistema de missões...</p>
+    <div class="barra-carregamento"><div id="barra-carga" class="preenchimento"></div></div>
+  </div>
+</div>
+
+<!-- 🏠 MENU PRINCIPAL -->
+<div id="tela-inicio" class="tela-tela escondido">
+  <div class="caixa-inicio">
+    <h1 class="titulo-jogo">🎯 OPERAÇÃO BRASIL</h1>
+    <p class="subtitulo">MUNDO ABERTO 3D — FASE 1.0</p>
+    <div class="estatisticas">
+      <div>⭐ Pontos: <span id="total-pontos">0</span></div>
+      <div>🏆 Missões: <span id="missoes-concluidas">0</span>/10</div>
+    </div>
+    <div class="botoes-inicio">
+      <button class="btn-missao btn-verde" onclick="iniciarJogo()">🚀 NOVA OPERAÇÃO</button>
+      <button class="btn-missao btn-azul" onclick="carregarProgresso()">📂 CONTINUAR</button>
+      <button class="btn-missao btn-laranja" onclick="mostrarInstrucoes()">📖 MANUAL</button>
+    </div>
+    <p class="versao">Versão 1.0 — 10 Missões — Proibido para menores de 16 anos</p>
+  </div>
+</div>
+
+<!-- 📖 MANUAL -->
+<div id="tela-instrucoes" class="tela-tela escondido">
+  <div class="caixa-inicio">
+    <h2>📖 MANUAL DE OPERAÇÃO</h2>
+    <div class="texto-instrucoes">
+      <p>🎯 <strong>OBJETIVO:</strong> Cumprir a missão chegando ao destino dentro do tempo limite!</p>
+      <p>🚗 <strong>TRANSPORTES:</strong></p>
+      <p> 🚶 A Pé → Silencioso, passa por lugares estreitos</p>
+      <p> 🚗 Carro → Rápido em estradas, atenção ao tempo!</p>
+      <p> ✈️ Avião → Para longas distâncias, voa por cima de tudo!</p>
+      <p>🌙 <strong>DIA E NOITE:</strong> Cada missão tem horário diferente!</p>
+      <p>📦 <strong>ITENS:</strong> Colete caixas amarelas no caminho — dão pontos extras!</p>
+      <p>⚠️ <strong>ALERTA:</strong> Radar mostra zonas perigosas — evite o vermelho!</p>
+      <p>🎮 <strong>CONTROLES:</strong> Clique e arraste = mover mapa | Scroll = zoom | Botões = transporte</p>
+    </div>
+    <button class="btn-missao btn-vermelho" onclick="fecharInstrucoes()">← VOLTAR</button>
+  </div>
+</div>
+
+<!-- 🗺️ JOGO — MAPA 3D -->
+<div id="tela-jogo" class="escondido">
+  <!-- Cabeçalho -->
+  <div class="cabecalho-jogo">
+    <div class="info-missao">
+      <span>🎯 <strong id="nome-missao">MISSÃO 1 — A Fuga da Cidade</strong></span>
+    </div>
+    <div class="info-tempo">
+      <span id="icone-tempo">☀️</span> ⏱️ <strong id="contador-tempo">05:00</strong>
+    </div>
+    <div class="info-pontos">
+      <span>⭐ <strong id="pontos-atuais">0</strong></span>
+    </div>
+    <div class="info-fase">
+      <span>FASE <strong id="numero-fase">1.0</strong></span>
+    </div>
+  </div>
+
+  <!-- Mapa 3D -->
+  <div id="mapa"></div>
+
+  <!-- 📡 RADAR DE ALERTA -->
+  <div class="radar-container">
+    <div class="radar">
+      <div class="radar-centro"></div>
+      <div class="radar-risco" id="radar-risco"></div>
+      <div class="radar-jogador">📍</div>
+    </div>
+    <p class="radar-texto">📡 RADAR</p>
+  </div>
+
+  <!-- 🎮 PAINEL DE CONTROLES -->
+  <div class="painel-controles">
+    <h3>🎮 CONTROLES DE MISSÃO</h3>
+    <div class="grupo-transporte">
+      <button class="btn-transporte ativo" id="btn-pe" onclick="mudarTransporte('pe')">🚶 A Pé</button>
+      <button class="btn-transporte" id="btn-carro" onclick="mudarTransporte('carro')">🚗 Carro</button>
+      <button class="btn-transporte" id="btn-aviao" onclick="mudarTransporte('aviao')">✈️ Avião</button>
+    </div>
+    <div class="barra-progresso">
+      <span>Progresso</span>
+      <div class="barra-fundo"><div id="barra-progresso" class="barra-preenchida"></div></div>
+    </div>
+    <div class="inventario">
+      <p>📦 ITENS COLETADOS</p>
+      <div id="lista-itens" class="itens-lista">—</div>
+    </div>
+    <p id="status-missao" class="status-texto">📍 Siga até o marcador vermelho!</p>
+  </div>
+
+  <!-- 📋 LISTA DE MISSÕES -->
+  <div class="menu-fases">
+    <h4>📋 OPERAÇÕES — FASE 1.0</h4>
+    <div id="lista-fases"></div>
+  </div>
+
+  <!-- 🔊 CONTROLE DE SOM -->
+  <button class="btn-som" id="btn-som" onclick="alternarSom()">🔊</button>
+</div>
+
+<!-- 🎯 TELA DE SUCESSO -->
+<div id="tela-sucesso" class="tela-tela escondido">
+  <div class="caixa-inicio tela-sucesso-box">
+    <div class="icone-sucesso">✅</div>
+    <h1>MISSÃO CUMPRIDA!</h1>
+    <p id="mensagem-resultado">Você chegou ao destino dentro do prazo!</p>
+    <div class="resultado-detalhes">
+      <p>⭐ Pontos ganhos: <strong id="pontos-ganhos">+100</strong></p>
+      <p>⏱️ Tempo restante: <strong id="tempo-restante-ganho">02s</strong></p>
+      <p>📦 Itens coletados: <strong id="itens-ganhos">0</strong></p>
+      <p>🏅 Avaliação: <strong id="avaliacao">★★★</strong></p>
+    </div>
+    <div class="botoes-inicio">
+      <button class="btn-missao btn-verde" onclick="proximaMissao()">➡️ PRÓXIMA MISSÃO</button>
+      <button class="btn-missao btn-laranja" onclick="repetirMissao()">🔄 REPETIR</button>
+      <button class="btn-missao btn-preto" onclick="voltarInicio()">🏠 MENU PRINCIPAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ❌ TELA DE FALHA -->
+<div id="tela-falha" class="tela-tela escondido">
+  <div class="caixa-inicio">
+    <div class="icone-falha">❌</div>
+    <h1>MISSÃO FALHOU!</h1>
+    <p id="mensagem-falha">Tempo esgotado! Tente novamente.</p>
+    <div class="botoes-inicio">
+      <button class="btn-missao btn-laranja" onclick="repetirMissao()">🔄 TENTAR NOVAMENTE</button>
+      <button class="btn-missao btn-preto" onclick="voltarInicio()">🏠 MENU PRINCIPAL</button>
+    </div>
+  </div>
+</div>
+
+<script src="jogo.js?v=5"></script>
+</body>
+</html>

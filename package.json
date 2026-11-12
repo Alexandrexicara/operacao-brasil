@@ -1,0 +1,15 @@
+{
+  "name": "operacao-brasil-jogo",
+  "version": "1.0.0",
+  "description": "Mundo Aberto 3D — Fase 1.0",
+  "scripts": {
+    "start": "serve -p 3000",
+    "iniciar": "npm start"
+  },
+  "devDependencies": {
+    "serve": "^14.2.6"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.13.0"
+  }
+}

@@ -1,0 +1,99 @@
+:root {
+  --vermelho: #e50914; --preto: #050505; --azul: #0066ff;
+  --laranja: #ff6b00; --verde: #39ff14; --dourado: #ffd700;
+  --cinza-escuro: #0f0f0f; --cinza-medio: #1e1e1e; --cinza-claro: #2d2d2d;
+  --rosa: #ff2e88; --roxo: #9d00ff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+body { background: var(--preto); color: #fff; overflow: hidden; }
+
+/* TELAS */
+.tela-tela { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #050505 0%, #1a0000 50%, #00051a 100%); z-index: 100; }
+.escondido { display: none !important; }
+
+/* CARREGAMENTO */
+.caixa-carregamento { text-align: center; }
+.logo-jogo { font-size: 80px; margin-bottom: 20px; animation: pulsar 1.5s infinite; }
+@keyframes pulsar { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+.barra-carregamento { width: 300px; height: 12px; background: var(--cinza-medio); border-radius: 6px; margin: 30px auto; overflow: hidden; border: 2px solid var(--laranja); }
+.preenchimento { height: 100%; width: 0; background: linear-gradient(90deg, var(--vermelho), var(--laranja), var(--verde)); transition: width .3s; }
+
+/* CAIXA PRINCIPAL */
+.caixa-inicio { background: var(--cinza-escuro); padding: 50px; border-radius: 20px; border: 3px solid var(--laranja); box-shadow: 0 0 60px rgba(255,107,0,.3); text-align: center; max-width: 520px; }
+.titulo-jogo { font-size: 46px; color: var(--vermelho); text-shadow: 0 0 20px var(--vermelho); margin-bottom: 10px; letter-spacing: 2px; }
+.subtitulo { font-size: 18px; color: var(--verde); margin-bottom: 25px; letter-spacing: 3px; }
+.estatisticas { display: flex; justify-content: space-around; margin: 20px 0; padding: 15px; background: var(--cinza-medio); border-radius: 10px; border: 1px solid var(--azul); }
+.estatisticas div { font-size: 16px; }
+.botoes-inicio { display: flex; flex-direction: column; gap: 12px; margin-top: 30px; }
+.btn-missao { padding: 14px 30px; font-size: 17px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: all .3s; text-transform: uppercase; letter-spacing: 1px; }
+.btn-verde { background: linear-gradient(90deg, #00c853, var(--verde)); color: #000; box-shadow: 0 0 15px rgba(57,255,20,.4); }
+.btn-vermelho { background: linear-gradient(90deg, #c50000, var(--vermelho)); color: #fff; box-shadow: 0 0 15px rgba(229,9,20,.4); }
+.btn-laranja { background: linear-gradient(90deg, #e65100, var(--laranja)); color: #000; box-shadow: 0 0 15px rgba(255,107,0,.4); }
+.btn-azul { background: linear-gradient(90deg, #0052cc, var(--azul)); color: #fff; box-shadow: 0 0 15px rgba(0,102,255,.4); }
+.btn-preto { background: var(--cinza-claro); color: #fff; border: 1px solid #555; }
+.btn-missao:hover { transform: scale(1.05); }
+.versao { margin-top: 25px; color: #666; font-size: 13px; }
+.texto-instrucoes { text-align: left; line-height: 2; color: #ccc; margin: 20px 0; font-size: 15px; }
+
+/* TELA DE SUCESSO/FALHA */
+.tela-sucesso-box { border-color: var(--verde); box-shadow: 0 0 60px rgba(57,255,20,.3); }
+.icone-sucesso { font-size: 70px; margin-bottom: 10px; }
+.icone-falha { font-size: 70px; margin-bottom: 10px; filter: grayscale(1); }
+.resultado-detalhes { margin: 25px 0; padding: 20px; background: var(--cinza-medio); border-radius: 10px; border: 1px solid var(--dourado); }
+.resultado-detalhes p { margin: 10px 0; font-size: 16px; }
+
+/* JOGO — MAPA */
+#tela-jogo { position: fixed; inset: 0; }
+.cabecalho-jogo { position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,.9); padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--laranja); z-index: 10; flex-wrap: wrap; gap: 10px; }
+.info-missao, .info-tempo, .info-pontos, .info-fase { font-size: 16px; font-weight: 600; }
+.info-tempo { color: var(--verde); }
+#mapa { position: absolute; inset: 0; z-index: 1; }
+
+/* 📡 RADAR */
+.radar-container { position: absolute; bottom: 30px; right: 30px; z-index: 20; text-align: center; }
+.radar { width: 140px; height: 140px; border-radius: 50%; background: rgba(0,30,0,.85); border: 3px solid var(--verde); position: relative; box-shadow: 0 0 20px rgba(57,255,20,.4); }
+.radar-centro { position: absolute; inset: 20%; border-radius: 50%; background: radial-gradient(circle, rgba(57,255,20,.2) 0%, transparent 70%); }
+.radar-jogador { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; z-index: 3; }
+.radar-risco { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--vermelho); box-shadow: 0 0 10px var(--vermelho); opacity: 0; transition: all .3s; }
+.radar-risco.ativo { opacity: 1; top: 30%; left: 60%; animation: piscar .5s infinite; }
+@keyframes piscar { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+.radar-texto { margin-top: 8px; font-size: 13px; color: var(--verde); font-weight: bold; }
+
+/* 🎮 PAINEL CONTROLES */
+.painel-controles { position: absolute; bottom: 30px; left: 30px; background: rgba(0,0,0,.9); padding: 20px; border-radius: 15px; border: 2px solid var(--vermelho); z-index: 20; min-width: 290px; max-width: 320px; }
+.painel-controles h3 { color: var(--dourado); margin-bottom: 15px; text-align: center; font-size: 17px; }
+.grupo-transporte { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+.btn-transporte { width: 100%; padding: 11px; font-size: 15px; border: 2px solid transparent; border-radius: 8px; background: var(--cinza-medio); color: #fff; cursor: pointer; transition: all .25s; font-weight: 600; }
+.btn-transporte:hover { background: var(--cinza-claro); border-color: #444; }
+.btn-transporte.ativo { background: var(--vermelho); border-color: var(--laranja); box-shadow: 0 0 12px rgba(229,9,20,.5); }
+.barra-progresso { margin: 15px 0; }
+.barra-progresso span { font-size: 13px; color: #aaa; margin-bottom: 5px; display: inline-block; }
+.barra-fundo { width: 100%; height: 12px; background: var(--cinza-medio); border-radius: 6px; overflow: hidden; border: 1px solid #333; }
+.barra-preenchida { height: 100%; width: 0%; background: linear-gradient(90deg, var(--verde), var(--dourado)); transition: width .6s ease-out; border-radius: 6px; }
+.inventario { margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+.inventario p { font-size: 13px; color: #888; margin-bottom: 8px; }
+.itens-lista { font-size: 14px; color: var(--dourado); min-height: 24px; }
+.status-texto { margin-top: 12px; color: var(--verde); font-size: 14px; line-height: 1.5; }
+
+/* 📋 LISTA DE FASES */
+.menu-fases { position: absolute; top: 70px; right: 30px; background: rgba(0,0,0,.9); padding: 18px; border-radius: 15px; border: 2px solid var(--azul); z-index: 20; min-width: 230px; max-height: 400px; overflow-y: auto; }
+.menu-fases h4 { color: var(--azul); margin-bottom: 12px; font-size: 15px; position: sticky; top: 0; background: rgba(0,0,0,.95); padding-bottom: 8px; border-bottom: 1px solid #333; }
+.fase-item { padding: 10px 12px; margin: 4px 0; background: var(--cinza-medio); border-radius: 6px; cursor: pointer; transition: all .2s; font-size: 14px; border: 2px solid transparent; }
+.fase-item:hover { background: var(--laranja); color: #000; }
+.fase-item.concluida { opacity: .6; text-decoration: line-through; border-color: #333; }
+.fase-item.atual { border-color: var(--verde); background: rgba(57,255,20,.1); }
+.fase-item.bloqueada { opacity: .4; cursor: not-allowed; }
+
+/* 🔊 SOM */
+.btn-som { position: absolute; top: 80px; left: 30px; background: rgba(0,0,0,.9); border: 2px solid var(--cinza-claro); color: #fff; width: 50px; height: 50px; border-radius: 50%; font-size: 22px; cursor: pointer; z-index: 20; transition: all .2s; }
+.btn-som:hover { border-color: var(--laranja); }
+
+/* RESPONSIVO — CELULAR */
+@media (max-width: 768px) {
+  .cabecalho-jogo { font-size: 13px; padding: 10px 15px; }
+  .painel-controles { left: 15px; bottom: 15px; right: 15px; max-width: none; }
+  .menu-fases { right: 15px; top: 65px; }
+  .radar-container { right: 15px; bottom: 220px; }
+  .caixa-inicio { padding: 30px 20px; max-width: 90%; }
+  .titulo-jogo { font-size: 32px; }
+}
