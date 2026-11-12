@@ -86,8 +86,11 @@
     <p class="radar-texto">📡 RADAR</p>
   </div>
 
+  <button class="atalho-lateral atalho-controles" onclick="alternarPainel('painel-controles')" aria-label="Abrir controles">🎮</button>
+  <button class="atalho-lateral atalho-missoes" onclick="alternarPainel('menu-fases')" aria-label="Abrir missões">📋</button>
+
   <!-- 🎮 PAINEL DE CONTROLES -->
-  <div class="painel-controles">
+  <div id="painel-controles" class="painel-controles">
     <h3>🎮 CONTROLES DE MISSÃO</h3>
     <div class="grupo-transporte">
       <button class="btn-transporte ativo" id="btn-pe" onclick="mudarTransporte('pe')">🚶 A Pé</button>
@@ -106,7 +109,7 @@
   </div>
 
   <!-- 📋 LISTA DE MISSÕES -->
-  <div class="menu-fases">
+  <div id="menu-fases" class="menu-fases">
     <h4>📋 OPERAÇÕES — FASE 1.0</h4>
     <div id="lista-fases"></div>
   </div>
