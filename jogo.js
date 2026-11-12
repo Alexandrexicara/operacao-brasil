@@ -1,5 +1,5 @@
-import * as maplibregl from './node_modules/maplibre-gl/dist/maplibre-gl.mjs';
-import { LogoControl } from 'https://cdn.jsdelivr.net/npm/@maptoolkit/maplibre-logo-control@1.1.2/dist/maplibre-logo-control.js';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import * as maplibregl from 'maplibre-gl';
 
 const MISSOES = [
   {id:1,nome:"A Fuga da Cidade",origem:[-43.93,-19.72],destino:[-43.95,-19.74],tempoLimite:300,transporte:"carro",horario:"dia",dica:"Siga pela estrada!"},
@@ -122,7 +122,7 @@ function inicializarMapa() {
 
   mapa = new maplibregl.Map({
     container: "mapa",
-    style: "https://styles.maptoolkit.org/street-3d.json",
+    style: "https://tiles.openfreemap.org/styles/liberty",
     center: MISSOES[faseAtual].origem,
     zoom: 15.5,
     pitch: 65,
@@ -138,9 +138,9 @@ function inicializarMapa() {
   mapa.touchZoomRotate.enableRotation();
   mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-right");
-  mapa.addControl(new LogoControl({ variant: "com" }), "bottom-left");
 
   mapa.on("load", () => {
+    ativarTerreno3D();
     ativarEdificios3D();
     try {
       mapa.setFog({ color: "rgb(220, 230, 240)", "high-color": "rgb(30, 70, 120)", "space-color": "rgb(5, 8, 18)", "horizon-blend": 0.08 });
@@ -150,6 +150,20 @@ function inicializarMapa() {
 
   mapa.on("click", moverJogador);
   mapa.on("error", evento => console.warn("Aviso do mapa:", evento?.error?.message || evento));
+}
+
+function ativarTerreno3D() {
+  if (!mapa || mapa.getSource("missao-brasil-terreno-3d")) return;
+  try {
+    mapa.addSource("missao-brasil-terreno-3d", {
+      type: "raster-dem",
+      url: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
+      tileSize: 256
+    });
+    mapa.setTerrain({ source: "missao-brasil-terreno-3d", exaggeration: 1.25 });
+  } catch (erro) {
+    console.warn("Terreno 3D indisponível nesta região:", erro);
+  }
 }
 
 function ativarEdificios3D() {
