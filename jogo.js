@@ -1,4 +1,5 @@
 import * as maplibregl from './node_modules/maplibre-gl/dist/maplibre-gl.mjs';
+import { LogoControl } from 'https://cdn.jsdelivr.net/npm/@maptoolkit/maplibre-logo-control@1.1.2/dist/maplibre-logo-control.js';
 
 const MISSOES = [
   {id:1,nome:"A Fuga da Cidade",origem:[-43.93,-19.72],destino:[-43.95,-19.74],tempoLimite:300,transporte:"carro",horario:"dia",dica:"Siga pela estrada!"},
@@ -120,7 +121,7 @@ function inicializarMapa() {
 
   mapa = new maplibregl.Map({
     container: "mapa",
-    style: "https://tiles.openfreemap.org/styles/liberty",
+    style: "https://styles.maptoolkit.org/street-3d.json",
     center: MISSOES[faseAtual].origem,
     zoom: 15.5,
     pitch: 65,
@@ -128,13 +129,15 @@ function inicializarMapa() {
     maxPitch: 85,
     minZoom: 4,
     maxZoom: 20,
-    canvasContextAttributes: { antialias: true }
+    canvasContextAttributes: { antialias: true },
+    attributionControl: { compact: false }
   });
 
   mapa.dragRotate.enable();
   mapa.touchZoomRotate.enableRotation();
   mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-right");
+  mapa.addControl(new LogoControl({ variant: "com" }), "bottom-left");
 
   mapa.on("load", () => {
     ativarEdificios3D();
@@ -151,6 +154,7 @@ function inicializarMapa() {
 function ativarEdificios3D() {
   if (!mapa || mapa.getLayer("missao-brasil-edificios-3d")) return;
   const estilo = mapa.getStyle();
+  if ((estilo.layers || []).some(layer => layer.type === "fill-extrusion")) return;
   const fontes = estilo.sources || {};
   const fonte = Object.entries(fontes).find(([id, dados]) =>
     dados.type === "vector" && (id === "openmaptiles" || /openfreemap|openmaptiles/i.test(dados.url || ""))
