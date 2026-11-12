@@ -122,6 +122,7 @@ try{
 if(status)status.textContent="🌍 Preparando o mundo 3D aberto...";
 const M=await carregarCesium();
 mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:new M.EllipsoidTerrainProvider(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",credit:"© OpenStreetMap contributors"}),requestRenderMode:false});
+try{mapa.terrainProvider=await M.CesiumTerrainProvider.fromUrl("https://assets.agi.com/stk-terrain/world",{requestVertexNormals:true});}catch(erro){console.warn("Terreno global indisponível; usando globo base:",erro);}
 mapa.scene.globe.depthTestAgainstTerrain=false;mapa.scene.screenSpaceCameraController.minimumZoomDistance=35;mapa.scene.screenSpaceCameraController.maximumZoomDistance=250000;mapa.scene.globe.enableLighting=true;
 handlerMapa=new M.ScreenSpaceEventHandler(mapa.scene.canvas);
 handlerMapa.setInputAction(e=>{if(!jogoAtivo)return;const cart=mapa.camera.pickEllipsoid(e.position,mapa.scene.globe.ellipsoid);if(!cart)return;const c=M.Cartographic.fromCartesian(cart);iniciarDeslocamento([M.Math.toDegrees(c.longitude),M.Math.toDegrees(c.latitude)]);},M.ScreenSpaceEventType.LEFT_CLICK);
@@ -136,7 +137,7 @@ const q='[out:json][timeout:18];(way["building"](around:1100,'+centro[1]+','+cen
 fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(q),signal:AbortSignal.timeout(20000)})
 .then(r=>{if(!r.ok)throw new Error("Servidor OSM indisponível");return r.json();}).then(d=>{
 (d.elements||[]).forEach(item=>{if(!item.geometry||item.geometry.length<4)return;const coords=[];item.geometry.forEach(p=>coords.push(p.lon,p.lat));const tags=item.tags||{};const h=Number.parseFloat(String(tags.height||"").replace(",","."))||(Number.parseFloat(tags["building:levels"])||2.5)*3;
-entidadesPredios.push(mapa.entities.add({name:tags.name||"Edificação OpenStreetMap",polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:0,extrudedHeight:Math.max(4,Math.min(h,120)),material:Cesium.Color.fromCssColorString("#b7b2a8").withAlpha(.88),outline:true,outlineColor:Cesium.Color.fromCssColorString("#343b43")}}));});mapa.scene.requestRender();
+entidadesPredios.push(mapa.entities.add({name:tags.name||"Edificação OpenStreetMap",polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:0,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,extrudedHeight:Math.max(4,Math.min(h,120)),extrudedHeightReference:Cesium.HeightReference.RELATIVE_TO_GROUND,material:Cesium.Color.fromCssColorString("#b7b2a8").withAlpha(.88),outline:true,outlineColor:Cesium.Color.fromCssColorString("#343b43")}}));});mapa.scene.requestRender();
 }).catch(e=>console.warn("Prédios OSM indisponíveis nesta área:",e)).finally(()=>{carregandoPredios=false;});
 }
 function ajustarMapa(){if(!mapa||mapa.isDestroyed())return;const m=MISSOES[faseAtual];mapa.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(m.origem[0],m.origem[1],1500),orientation:{heading:0,pitch:Cesium.Math.toRadians(-48),roll:0},duration:1});colocarMarcadores(m.origem,m.destino);carregarPrediosOSM(m.origem);}
@@ -151,8 +152,8 @@ function interpolarCoordenada(inicio, fim, proporcao) {
 
 function criarMarcadorItem(coordenada,indice){const e=mapa.entities.add({name:"Suprimentos",position:Cesium.Cartesian3.fromDegrees(coordenada[0],coordenada[1],12),point:{pixelSize:15,color:Cesium.Color.YELLOW,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"📦",font:"22px sans-serif",pixelOffset:new Cesium.Cartesian2(0,-22),disableDepthTestDistance:Number.POSITIVE_INFINITY}});entidadesItens.push({entidade:e,coordenada,indice,coletado:false});}
 function colocarMarcadores(origem,destino){if(!mapa||!Cesium)return;if(entidadeJogador)mapa.entities.remove(entidadeJogador);if(entidadeDestino)mapa.entities.remove(entidadeDestino);entidadesItens.forEach(i=>mapa.entities.remove(i.entidade));entidadesItens=[];posicaoJogador=[...origem];destinoMovimento=null;
-entidadeJogador=mapa.entities.add({name:"Jogador",position:Cesium.Cartesian3.fromDegrees(origem[0],origem[1],8),point:{pixelSize:17,color:Cesium.Color.LIME,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"JOGADOR",font:"bold 12px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-25),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
-entidadeDestino=mapa.entities.add({name:"Destino da missão",position:Cesium.Cartesian3.fromDegrees(destino[0],destino[1],10),point:{pixelSize:18,color:Cesium.Color.RED,outlineColor:Cesium.Color.WHITE,outlineWidth:3},label:{text:"DESTINO",font:"bold 13px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-26),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+entidadeJogador=mapa.entities.add({name:"Jogador",position:Cesium.Cartesian3.fromDegrees(origem[0],origem[1],0),point:{heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,pixelSize:17,color:Cesium.Color.LIME,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"JOGADOR",font:"bold 12px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-25),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+entidadeDestino=mapa.entities.add({name:"Destino da missão",position:Cesium.Cartesian3.fromDegrees(destino[0],destino[1],0),point:{heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,pixelSize:18,color:Cesium.Color.RED,outlineColor:Cesium.Color.WHITE,outlineWidth:3},label:{text:"DESTINO",font:"bold 13px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-26),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
 [.25,.5,.75].forEach((p,i)=>{if(!itensColetados.includes(i))criarMarcadorItem(interpolarCoordenada(origem,destino,p),i);});atualizarInventario();atualizarProgresso();}
 function carregarFase(indice) {
   faseAtual = indice;
@@ -217,7 +218,7 @@ function iniciarDeslocamento(destino) {
 
     if (distancia < 4) {
       posicaoJogador = [...destinoMovimento];
-      if(entidadeJogador)entidadeJogador.position=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],8);
+      if(entidadeJogador)entidadeJogador.position=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],0);
       destinoMovimento = null;
       atualizarProgresso();
       verificarChegada();
@@ -278,7 +279,7 @@ function formatarDistancia(metros) {
 
 function coletarItensProximos() {
   if (!posicaoJogador) return;
-  marcadoresItens.forEach(item => {
+  entidadesItens.forEach(item => {
     if (item.coletado) return;
     const distancia = distanciaMetros(posicaoJogador,item.coordenada);
     if (distancia <= RAIO_COLETA) {
