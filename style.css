@@ -132,3 +132,22 @@ body { background: var(--preto); color: #fff; overflow: hidden; }
   .radar-container { transform: scale(.82); transform-origin: bottom right; }
   .btn-som { top: 70px; left: 15px; }
 }
+
+/* Mapa em tela cheia e controles laterais compactos no celular */
+#tela-jogo{background:#17212b}
+#mapa{position:absolute;inset:0;min-height:100%;background:#17212b}
+#mapa .cesium-viewer,#mapa .cesium-widget,#mapa canvas{width:100%!important;height:100%!important}
+@media(max-width:768px){
+ .painel-controles,.menu-fases{transition:transform .2s ease,opacity .2s ease}
+ .painel-controles{left:10px;right:auto;bottom:68px;width:min(290px,78vw);max-width:78vw;max-height:45vh}
+ .painel-controles.recolhido,.menu-fases.recolhido{display:none!important}
+ .menu-fases{right:10px;left:auto;top:66px;width:min(260px,72vw);max-width:72vw}
+ .atalho-lateral{position:absolute;z-index:30;display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:12px;border:1px solid #ff6b00;background:rgba(5,8,12,.92);color:#fff;font-size:22px;box-shadow:0 3px 14px #0009}
+ .atalho-controles{left:10px;bottom:12px}
+ .atalho-missoes{right:10px;top:66px}
+ .radar-container{right:10px;bottom:12px;transform:scale(.68);transform-origin:bottom right}
+ .btn-som{left:64px;top:auto;bottom:12px;width:46px;height:46px}
+ .cabecalho-jogo{padding:8px 10px;gap:5px}
+ .info-missao,.info-tempo,.info-pontos,.info-fase{font-size:11px}
+}
+@media(min-width:769px){.atalho-lateral{display:none}}
