@@ -3,13 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎯 OPERAÇÃO BRASIL — Fase 1.0</title>
+  <title>🎯 MISSÃO BRASIL — Mundo Aberto 3D</title>
   <link rel="stylesheet" href="style.css">
   <link href="./node_modules/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
-  <script type="module">
-    import * as maplibregl from './node_modules/maplibre-gl/dist/maplibre-gl.mjs';
-    window.maplibregl = maplibregl;
-  </script>
 </head>
 <body>
 
@@ -17,7 +13,7 @@
 <div id="tela-carregamento" class="tela-tela">
   <div class="caixa-carregamento">
     <div class="logo-jogo">🎯</div>
-    <h1>OPERAÇÃO BRASIL</h1>
+    <h1>MISSÃO BRASIL</h1>
     <p>Carregando sistema de missões...</p>
     <div class="barra-carregamento"><div id="barra-carga" class="preenchimento"></div></div>
   </div>
@@ -48,13 +44,13 @@
     <div class="texto-instrucoes">
       <p>🎯 <strong>OBJETIVO:</strong> Cumprir a missão chegando ao destino dentro do tempo limite!</p>
       <p>🚗 <strong>TRANSPORTES:</strong></p>
-      <p> 🚶 A Pé → Silencioso, passa por lugares estreitos</p>
-      <p> 🚗 Carro → Rápido em estradas, atenção ao tempo!</p>
-      <p> ✈️ Avião → Para longas distâncias, voa por cima de tudo!</p>
+      <p> 🚶 A Pé → Movimento mais lento</p>
+      <p> 🚗 Carro → Movimento rápido</p>
+      <p> ✈️ Avião → Deslocamento aéreo mais rápido</p>
       <p>🌙 <strong>DIA E NOITE:</strong> Cada missão tem horário diferente!</p>
       <p>📦 <strong>ITENS:</strong> Colete caixas amarelas no caminho — dão pontos extras!</p>
       <p>⚠️ <strong>ALERTA:</strong> Radar mostra zonas perigosas — evite o vermelho!</p>
-      <p>🎮 <strong>CONTROLES:</strong> Clique e arraste = mover mapa | Scroll = zoom | Botões = transporte</p>
+      <p>🎮 <strong>CONTROLES:</strong> Clique no mapa para definir o destino do deslocamento | Arraste = girar/percorrer mapa | Scroll = zoom | WASD ou setas = movimentar</p>
     </div>
     <button class="btn-missao btn-vermelho" onclick="fecharInstrucoes()">← VOLTAR</button>
   </div>
@@ -153,6 +149,6 @@
   </div>
 </div>
 
-<script src="jogo.js?v=5"></script>
+<script type="module" src="jogo.js?v=6"></script>
 </body>
 </html>
