@@ -28,6 +28,7 @@ let destinoMovimento = null;
 let animacaoMovimento = null;
 let jogoAtivo = false;
 let pontosTotais = 0;
+let pontosNoInicioFase = 0;
 let missoesConcluidas = [];
 let somAtivo = true;
 let audioContext = null;
@@ -251,6 +252,7 @@ function carregarFase(indice) {
   tempoRestante = missao.tempoLimite;
   transporteAtual = missao.transporte;
   itensColetados = [];
+  pontosNoInicioFase = pontosTotais;
   document.getElementById("nome-missao").textContent = "MISSÃO " + (faseAtual + 1) + " — " + missao.nome;
   document.getElementById("numero-fase").textContent = "1." + (faseAtual + 1);
   document.getElementById("status-missao").textContent = "📍 " + missao.dica + " Clique no mapa para se deslocar.";
@@ -413,7 +415,7 @@ function missaoConcluida() {
   document.getElementById("mensagem-resultado").textContent = ultima
     ? "🏆 PARABÉNS! Você concluiu todas as 10 missões!"
     : "✅ Missão " + (faseAtual + 1) + " concluída! Prepare-se para a próxima operação.";
-  document.getElementById("pontos-ganhos").textContent = "+ " + (100 + itensColetados.length * 25);
+  document.getElementById("pontos-ganhos").textContent = "+ " + Math.max(0, pontosTotais - pontosNoInicioFase);
   document.getElementById("tempo-restante-ganho").textContent = atualizarTempoResultado(tempoRestante);
   document.getElementById("itens-ganhos").textContent = itensColetados.length;
   document.getElementById("avaliacao").textContent = tempoRestante > 120 ? "★★★" : tempoRestante > 45 ? "★★☆" : "★☆☆";
