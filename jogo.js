@@ -504,6 +504,7 @@ function moverComTeclado(evento) {
   iniciarDeslocamento([posicaoJogador[0] + deltaLng, latitude + deltaLat]);
 }
 
+function alternarPainel(id){const el=document.getElementById(id);if(el)el.classList.toggle("recolhido");}
 document.addEventListener("keydown", moverComTeclado);
 
 Object.assign(window, {
@@ -515,5 +516,6 @@ Object.assign(window, {
   alternarSom,
   repetirMissao,
   proximaMissao,
-  voltarInicio
+  voltarInicio,
+  alternarPainel
 });
