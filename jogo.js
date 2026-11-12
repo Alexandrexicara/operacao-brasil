@@ -1,5 +1,10 @@
-import 'maplibre-gl/dist/maplibre-gl.css';
-import * as maplibregl from 'maplibre-gl';
+let Cesium=null;
+function carregarCesium(){return new Promise((resolve,reject)=>{
+if(window.Cesium){Cesium=window.Cesium;resolve(Cesium);return;}
+if(!document.querySelector('link[data-cesium-css]')){const css=document.createElement('link');css.rel='stylesheet';css.href='https://cesium.com/downloads/cesiumjs/releases/1.123/Build/Cesium/Widgets/widgets.css';css.dataset.cesiumCss='true';document.head.appendChild(css);}
+const script=document.createElement('script');script.src='https://cesium.com/downloads/cesiumjs/releases/1.123/Build/Cesium/Cesium.js';
+script.onload=()=>{Cesium=window.Cesium;Cesium?resolve(Cesium):reject(new Error('CesiumJS não inicializou.'));};
+script.onerror=()=>reject(new Error('Não foi possível carregar o motor 3D.'));document.head.appendChild(script);});}
 
 const MISSOES = [
   {id:1,nome:"A Fuga da Cidade",origem:[-43.93,-19.72],destino:[-43.95,-19.74],tempoLimite:300,transporte:"carro",horario:"dia",dica:"Siga pela estrada!"},
@@ -14,14 +19,11 @@ const MISSOES = [
   {id:10,nome:"Missão Final",origem:[-43.80,-19.60],destino:[-43.93,-19.72],tempoLimite:420,transporte:"carro",horario:"dia",dica:"Volte à base!"}
 ];
 
-let mapa = null;
+let mapa=null,handlerMapa=null,entidadeJogador=null,entidadeDestino=null,entidadesItens=[],entidadesPredios=[],carregandoPredios=false;
 let faseAtual = 0;
 let tempoRestante = 300;
 let contadorInterval = null;
 let transporteAtual = "carro";
-let marcadorJogador = null;
-let marcadorDestino = null;
-let marcadoresItens = [];
 let itensColetados = [];
 let posicaoJogador = null;
 let destinoMovimento = null;
@@ -72,7 +74,7 @@ function iniciarJogo() {
   carregarFase(faseAtual);
   montarListaFases();
   atualizarEstatisticas();
-  setTimeout(() => mapa?.resize(), 80);
+  setTimeout(()=>{if(mapa&&!mapa.isDestroyed())mapa.resize();},150);
 }
 
 function carregarProgresso() {
@@ -100,7 +102,7 @@ function carregarProgresso() {
   carregarFase(faseAtual);
   montarListaFases();
   atualizarEstatisticas();
-  setTimeout(() => mapa?.resize(), 80);
+  setTimeout(()=>{if(mapa&&!mapa.isDestroyed())mapa.resize();},150);
 }
 
 function mostrarInstrucoes() {
@@ -113,117 +115,33 @@ function fecharInstrucoes() {
   document.getElementById("tela-inicio").classList.remove("escondido");
 }
 
-function inicializarMapa() {
-  if (mapa) {
-    mapa.resize();
-    ajustarMapa();
-    return;
-  }
-
-  mapa = new maplibregl.Map({
-    container: "mapa",
-    style: "https://tiles.openfreemap.org/styles/liberty",
-    center: MISSOES[faseAtual].origem,
-    zoom: 15.5,
-    pitch: 65,
-    bearing: -18,
-    maxPitch: 85,
-    minZoom: 4,
-    maxZoom: 20,
-    canvasContextAttributes: { antialias: true },
-    attributionControl: { compact: false }
-  });
-
-  mapa.dragRotate.enable();
-  mapa.touchZoomRotate.enableRotation();
-  mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
-  mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-right");
-
-  mapa.on("load", () => {
-    ativarTerreno3D();
-    ativarEdificios3D();
-    try {
-      mapa.setFog({ color: "rgb(220, 230, 240)", "high-color": "rgb(30, 70, 120)", "space-color": "rgb(5, 8, 18)", "horizon-blend": 0.08 });
-    } catch (_) {}
-    ajustarMapa();
-  });
-
-  mapa.on("click", moverJogador);
-  mapa.on("error", evento => {
-    console.warn("Aviso do mapa:", evento?.error?.message || evento);
-    const status = document.getElementById("status-missao");
-    if (status && jogoAtivo) status.textContent = "⚠️ O mapa teve uma falha ao carregar. Verifique sua conexão e recarregue o jogo.";
-  });
+async function inicializarMapa(){
+if(mapa&&!mapa.isDestroyed()){mapa.resize();ajustarMapa();return;}
+const status=document.getElementById("status-missao");
+try{
+if(status)status.textContent="🌍 Preparando o mundo 3D aberto...";
+const M=await carregarCesium();
+mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:new M.EllipsoidTerrainProvider(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",credit:"© OpenStreetMap contributors"}),requestRenderMode:false});
+mapa.scene.globe.depthTestAgainstTerrain=false;mapa.scene.screenSpaceCameraController.minimumZoomDistance=35;mapa.scene.screenSpaceCameraController.maximumZoomDistance=250000;mapa.scene.globe.enableLighting=true;
+handlerMapa=new M.ScreenSpaceEventHandler(mapa.scene.canvas);
+handlerMapa.setInputAction(e=>{if(!jogoAtivo)return;const cart=mapa.camera.pickEllipsoid(e.position,mapa.scene.globe.ellipsoid);if(!cart)return;const c=M.Cartographic.fromCartesian(cart);iniciarDeslocamento([M.Math.toDegrees(c.longitude),M.Math.toDegrees(c.latitude)]);},M.ScreenSpaceEventType.LEFT_CLICK);
+const missao=MISSOES[faseAtual];await mapa.camera.flyTo({destination:M.Cartesian3.fromDegrees(missao.origem[0],missao.origem[1],1800),orientation:{heading:0,pitch:M.Math.toRadians(-48),roll:0},duration:1.2});
+colocarMarcadores(missao.origem,missao.destino);carregarPrediosOSM(missao.origem);
+if(status)status.textContent="🌎 Mapa 3D aberto carregado. Clique no mapa ou use WASD para se deslocar.";
+}catch(erro){console.error("Falha ao iniciar CesiumJS:",erro);if(status)status.textContent="⚠️ Não foi possível carregar o mapa 3D. Verifique a conexão e recarregue.";}
 }
-
-function ativarTerreno3D() {
-  if (!mapa || mapa.getSource("missao-brasil-terreno-3d")) return;
-  try {
-    mapa.addSource("missao-brasil-terreno-3d", {
-      type: "raster-dem",
-      url: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
-      tileSize: 256
-    });
-    mapa.setTerrain({ source: "missao-brasil-terreno-3d", exaggeration: 1.25 });
-  } catch (erro) {
-    console.warn("Terreno 3D indisponível nesta região:", erro);
-  }
+function carregarPrediosOSM(centro){
+if(!mapa||!Cesium||carregandoPredios)return;carregandoPredios=true;entidadesPredios.forEach(e=>mapa.entities.remove(e));entidadesPredios=[];
+const q='[out:json][timeout:18];(way["building"](around:1100,'+centro[1]+','+centro[0]+'););out tags geom;';
+fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(q),signal:AbortSignal.timeout(20000)})
+.then(r=>{if(!r.ok)throw new Error("Servidor OSM indisponível");return r.json();}).then(d=>{
+(d.elements||[]).forEach(item=>{if(!item.geometry||item.geometry.length<4)return;const coords=[];item.geometry.forEach(p=>coords.push(p.lon,p.lat));const tags=item.tags||{};const h=Number.parseFloat(String(tags.height||"").replace(",","."))||(Number.parseFloat(tags["building:levels"])||2.5)*3;
+entidadesPredios.push(mapa.entities.add({name:tags.name||"Edificação OpenStreetMap",polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:0,extrudedHeight:Math.max(4,Math.min(h,120)),material:Cesium.Color.fromCssColorString("#b7b2a8").withAlpha(.88),outline:true,outlineColor:Cesium.Color.fromCssColorString("#343b43")}}));});mapa.scene.requestRender();
+}).catch(e=>console.warn("Prédios OSM indisponíveis nesta área:",e)).finally(()=>{carregandoPredios=false;});
 }
-
-function ativarEdificios3D() {
-  if (!mapa || mapa.getLayer("missao-brasil-edificios-3d")) return;
-  const estilo = mapa.getStyle();
-  if ((estilo.layers || []).some(layer => layer.type === "fill-extrusion")) return;
-  const fontes = estilo.sources || {};
-  const fonte = Object.entries(fontes).find(([id, dados]) =>
-    dados.type === "vector" && (id === "openmaptiles" || /openfreemap|openmaptiles/i.test(dados.url || ""))
-  );
-  if (!fonte) {
-    console.warn("A fonte vetorial do mapa não disponibilizou a camada de edifícios.");
-    return;
-  }
-
-  const [sourceId] = fonte;
-  const camadaPredios = (estilo.layers || []).find(layer =>
-    layer["source-layer"] === "building" && layer.source === sourceId
-  );
-  if (!camadaPredios) {
-    console.warn("A camada de edifícios não foi encontrada no estilo cartográfico.");
-    return;
-  }
-
-  const primeiraCamadaTexto = (estilo.layers || []).find(layer => layer.type === "symbol")?.id;
-  try {
-    mapa.addLayer({
-      id: "missao-brasil-edificios-3d",
-      type: "fill-extrusion",
-      source: sourceId,
-      "source-layer": "building",
-      minzoom: 14,
-      filter: ["any", [">", ["to-number", ["get", "render_height"], 0], 0], [">", ["to-number", ["get", "height"], 0], 0]],
-      paint: {
-        "fill-extrusion-color": [
-          "interpolate", ["linear"], ["to-number", ["get", "render_height"], 10],
-          0, "#9c9b98", 25, "#c5b9a5", 80, "#8d9eae"
-        ],
-        "fill-extrusion-height": ["max", ["to-number", ["get", "render_height"], 0], ["to-number", ["get", "height"], 0], 4],
-        "fill-extrusion-base": ["max", ["to-number", ["get", "render_min_height"], 0], ["to-number", ["get", "min_height"], 0]],
-        "fill-extrusion-opacity": 0.94,
-        "fill-extrusion-vertical-gradient": true
-      }
-    }, primeiraCamadaTexto);
-  } catch (erro) {
-    console.error("Não foi possível ativar os prédios 3D:", erro);
-  }
-}
-
-function ajustarMapa() {
-  if (!mapa || !mapa.isStyleLoaded()) return;
-  const missao = MISSOES[faseAtual];
-  mapa.flyTo({ center: missao.origem, zoom: 15.5, pitch: 65, bearing: -18, speed: 0.8, essential: true });
-  colocarMarcadores(missao.origem, missao.destino);
-}
-
+function ajustarMapa(){if(!mapa||mapa.isDestroyed())return;const m=MISSOES[faseAtual];mapa.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(m.origem[0],m.origem[1],1500),orientation:{heading:0,pitch:Cesium.Math.toRadians(-48),roll:0},duration:1});colocarMarcadores(m.origem,m.destino);carregarPrediosOSM(m.origem);}
+function distanciaMetros(a,b){const r=Math.PI/180,dl=(b[1]-a[1])*r,dg=(b[0]-a[0])*r,l1=a[1]*r,l2=b[1]*r,h=Math.sin(dl/2)**2+Math.cos(l1)*Math.cos(l2)*Math.sin(dg/2)**2;return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
+function moverCameraParaJogador(){if(!mapa||!posicaoJogador)return;mapa.camera.setView({destination:Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],900),orientation:{heading:mapa.camera.heading,pitch:Cesium.Math.toRadians(-48),roll:0}});}
 function interpolarCoordenada(inicio, fim, proporcao) {
   return [
     inicio[0] + (fim[0] - inicio[0]) * proporcao,
@@ -231,37 +149,11 @@ function interpolarCoordenada(inicio, fim, proporcao) {
   ];
 }
 
-function criarMarcadorItem(coordenada, indice) {
-  const elemento = document.createElement("div");
-  elemento.className = "marcador-caixa-coleta";
-  elemento.textContent = "📦";
-  elemento.title = "Caixa de suprimentos";
-  elemento.style.cssText = "font-size:27px;cursor:pointer;filter:drop-shadow(0 2px 4px #000);";
-  const marcador = new maplibregl.Marker({ element: elemento, anchor: "bottom" })
-    .setLngLat(coordenada).addTo(mapa);
-  marcadoresItens.push({ marcador, coordenada, indice, coletado: false });
-}
-
-function colocarMarcadores(origem, destino) {
-  if (!mapa || !mapa.isStyleLoaded()) return;
-  marcadorJogador?.remove();
-  marcadorDestino?.remove();
-  marcadoresItens.forEach(item => item.marcador.remove());
-  marcadoresItens = [];
-  posicaoJogador = [...origem];
-  destinoMovimento = null;
-  marcadorJogador = new maplibregl.Marker({ color: "#39ff14" }).setLngLat(origem).addTo(mapa);
-  marcadorDestino = new maplibregl.Marker({ color: "#e50914" }).setLngLat(destino).addTo(mapa);
-
-  [0.25, 0.5, 0.75].forEach((parte, indice) => {
-    if (!itensColetados.includes(indice)) {
-      criarMarcadorItem(interpolarCoordenada(origem, destino, parte), indice);
-    }
-  });
-  atualizarInventario();
-  atualizarProgresso();
-}
-
+function criarMarcadorItem(coordenada,indice){const e=mapa.entities.add({name:"Suprimentos",position:Cesium.Cartesian3.fromDegrees(coordenada[0],coordenada[1],12),point:{pixelSize:15,color:Cesium.Color.YELLOW,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"📦",font:"22px sans-serif",pixelOffset:new Cesium.Cartesian2(0,-22),disableDepthTestDistance:Number.POSITIVE_INFINITY}});entidadesItens.push({entidade:e,coordenada,indice,coletado:false});}
+function colocarMarcadores(origem,destino){if(!mapa||!Cesium)return;if(entidadeJogador)mapa.entities.remove(entidadeJogador);if(entidadeDestino)mapa.entities.remove(entidadeDestino);entidadesItens.forEach(i=>mapa.entities.remove(i.entidade));entidadesItens=[];posicaoJogador=[...origem];destinoMovimento=null;
+entidadeJogador=mapa.entities.add({name:"Jogador",position:Cesium.Cartesian3.fromDegrees(origem[0],origem[1],8),point:{pixelSize:17,color:Cesium.Color.LIME,outlineColor:Cesium.Color.BLACK,outlineWidth:3},label:{text:"JOGADOR",font:"bold 12px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-25),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+entidadeDestino=mapa.entities.add({name:"Destino da missão",position:Cesium.Cartesian3.fromDegrees(destino[0],destino[1],10),point:{pixelSize:18,color:Cesium.Color.RED,outlineColor:Cesium.Color.WHITE,outlineWidth:3},label:{text:"DESTINO",font:"bold 13px sans-serif",fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-26),disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+[.25,.5,.75].forEach((p,i)=>{if(!itensColetados.includes(i))criarMarcadorItem(interpolarCoordenada(origem,destino,p),i);});atualizarInventario();atualizarProgresso();}
 function carregarFase(indice) {
   faseAtual = indice;
   const missao = MISSOES[faseAtual];
@@ -284,7 +176,7 @@ function carregarFase(indice) {
     atualizarContador();
     if (tempoRestante <= 0) mostrarFalha("⏰ O tempo acabou! Tente novamente.");
   }, 1000);
-  if (mapa?.isStyleLoaded()) ajustarMapa();
+  if(mapa&&!mapa.isDestroyed())ajustarMapa();
   salvarProgresso();
 }
 
@@ -309,11 +201,6 @@ function atualizarBotoesTransporte() {
   });
 }
 
-function moverJogador(evento) {
-  if (!jogoAtivo || !marcadorJogador || !evento?.lngLat) return;
-  iniciarDeslocamento([evento.lngLat.lng, evento.lngLat.lat]);
-}
-
 function iniciarDeslocamento(destino) {
   if (!jogoAtivo || !posicaoJogador) return;
   destinoMovimento = destino;
@@ -326,12 +213,11 @@ function iniciarDeslocamento(destino) {
     const delta = Math.min((instante - instanteAnterior) / 1000, 0.08);
     instanteAnterior = instante;
 
-    const distancia = new maplibregl.LngLat(...posicaoJogador)
-      .distanceTo(new maplibregl.LngLat(...destinoMovimento));
+    const distancia = distanciaMetros(posicaoJogador,destinoMovimento);
 
     if (distancia < 4) {
       posicaoJogador = [...destinoMovimento];
-      marcadorJogador.setLngLat(posicaoJogador);
+      if(entidadeJogador)entidadeJogador.position=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],8);
       destinoMovimento = null;
       atualizarProgresso();
       verificarChegada();
@@ -341,12 +227,9 @@ function iniciarDeslocamento(destino) {
     const metros = VELOCIDADES[transporteAtual] * delta;
     const fracao = Math.min(1, metros / distancia);
     posicaoJogador = interpolarCoordenada(posicaoJogador, destinoMovimento, fracao);
-    marcadorJogador.setLngLat(posicaoJogador);
+    if(entidadeJogador)entidadeJogador.position=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],8);
 
-    if (instante - ultimoAcompanhamentoCamera > 180) {
-      mapa?.setCenter(posicaoJogador);
-      ultimoAcompanhamentoCamera = instante;
-    }
+    if(instante-ultimoAcompanhamentoCamera>650){moverCameraParaJogador();ultimoAcompanhamentoCamera=instante;}
 
     coletarItensProximos();
     atualizarProgresso();
@@ -367,7 +250,7 @@ function pararMovimento() {
 function verificarChegada() {
   if (!jogoAtivo || !posicaoJogador) return;
   const destino = MISSOES[faseAtual].destino;
-  const distancia = new maplibregl.LngLat(...posicaoJogador).distanceTo(new maplibregl.LngLat(...destino));
+  const distancia = distanciaMetros(posicaoJogador,destino);
   if (distancia <= RAIO_CONCLUSAO) {
     missaoConcluida();
   } else {
@@ -378,8 +261,8 @@ function verificarChegada() {
 function atualizarProgresso() {
   if (!posicaoJogador) return;
   const missao = MISSOES[faseAtual];
-  const total = new maplibregl.LngLat(...missao.origem).distanceTo(new maplibregl.LngLat(...missao.destino));
-  const restante = new maplibregl.LngLat(...posicaoJogador).distanceTo(new maplibregl.LngLat(...missao.destino));
+  const total = distanciaMetros(missao.origem,missao.destino);
+  const restante = distanciaMetros(posicaoJogador,missao.destino);
   const progresso = total > 0 ? Math.max(0, Math.min(100, (1 - restante / total) * 100)) : 0;
   document.getElementById("barra-progresso").style.width = progresso + "%";
   document.getElementById("pontos-atuais").textContent = pontosTotais;
@@ -397,10 +280,10 @@ function coletarItensProximos() {
   if (!posicaoJogador) return;
   marcadoresItens.forEach(item => {
     if (item.coletado) return;
-    const distancia = new maplibregl.LngLat(...posicaoJogador).distanceTo(new maplibregl.LngLat(...item.coordenada));
+    const distancia = distanciaMetros(posicaoJogador,item.coordenada);
     if (distancia <= RAIO_COLETA) {
       item.coletado = true;
-      item.marcador.remove();
+      if(item.entidade)mapa?.entities.remove(item.entidade);
       itensColetados.push(item.indice);
       pontosTotais += 25;
       atualizarInventario();
@@ -460,7 +343,7 @@ function repetirMissao() {
   document.getElementById("tela-jogo").classList.remove("escondido");
   carregarFase(faseAtual);
   montarListaFases();
-  setTimeout(() => mapa?.resize(), 80);
+  setTimeout(()=>{if(mapa&&!mapa.isDestroyed())mapa.resize();},150);
 }
 
 function proximaMissao() {
@@ -469,7 +352,7 @@ function proximaMissao() {
   faseAtual = Math.min(faseAtual + 1, MISSOES.length - 1);
   carregarFase(faseAtual);
   montarListaFases();
-  setTimeout(() => mapa?.resize(), 80);
+  setTimeout(()=>{if(mapa&&!mapa.isDestroyed())mapa.resize();},150);
 }
 
 function selecionarFase(indice) {
