@@ -122,11 +122,22 @@ try{
 if(status)status.textContent="🌍 Preparando o mundo 3D aberto...";
 const M=await carregarCesium();
 mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:new M.EllipsoidTerrainProvider(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",credit:"Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}),requestRenderMode:false});
-try{mapa.terrainProvider=await M.CesiumTerrainProvider.fromUrl("https://assets.agi.com/stk-terrain/world",{requestVertexNormals:true});}catch(erro){console.warn("Terreno global indisponível; usando globo base:",erro);}
-mapa.scene.globe.depthTestAgainstTerrain=false;mapa.scene.screenSpaceCameraController.minimumZoomDistance=35;mapa.scene.screenSpaceCameraController.maximumZoomDistance=250000;mapa.scene.globe.enableLighting=true;
+mapa.scene.globe.show=true;
+mapa.scene.globe.baseColor=M.Color.fromCssColorString("#263746");
+mapa.scene.globe.depthTestAgainstTerrain=false;
+const camadaEsri=mapa.imageryLayers.get(0);
+camadaEsri.show=true;
+let fallbackMapa=false;
+camadaEsri.imageryProvider.errorEvent.addEventListener(()=>{
+ if(fallbackMapa||!mapa||mapa.isDestroyed())return;
+ fallbackMapa=true;
+ console.warn("Satélite indisponível; ativando mapa de ruas.");
+ mapa.imageryLayers.addImageryProvider(new M.UrlTemplateImageryProvider({url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",maximumLevel:19,credit:"© OpenStreetMap contributors"}));
+});
+mapa.scene.globe.depthTestAgainstTerrain=false;mapa.scene.screenSpaceCameraController.minimumZoomDistance=120;mapa.scene.screenSpaceCameraController.maximumZoomDistance=250000;mapa.scene.globe.enableLighting=true;
 handlerMapa=new M.ScreenSpaceEventHandler(mapa.scene.canvas);
 handlerMapa.setInputAction(e=>{if(!jogoAtivo)return;const cart=mapa.camera.pickEllipsoid(e.position,mapa.scene.globe.ellipsoid);if(!cart)return;const c=M.Cartographic.fromCartesian(cart);iniciarDeslocamento([M.Math.toDegrees(c.longitude),M.Math.toDegrees(c.latitude)]);},M.ScreenSpaceEventType.LEFT_CLICK);
-const missao=MISSOES[faseAtual];await mapa.camera.flyTo({destination:M.Cartesian3.fromDegrees(missao.origem[0],missao.origem[1],1800),orientation:{heading:0,pitch:M.Math.toRadians(-48),roll:0},duration:1.2});
+const missao=MISSOES[faseAtual];await mapa.camera.flyTo({destination:M.Cartesian3.fromDegrees(missao.origem[0],missao.origem[1],4200),orientation:{heading:0,pitch:M.Math.toRadians(-65),roll:0},duration:1.2});
 mapa.scene.globe.baseColor=M.Color.fromCssColorString("#263746");
 colocarMarcadores(missao.origem,missao.destino);carregarPrediosOSM(missao.origem);
 if(status)status.textContent="🌎 Mapa 3D aberto carregado. Clique no mapa ou use WASD para se deslocar.";
@@ -141,9 +152,9 @@ fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content
 entidadesPredios.push(mapa.entities.add({name:tags.name||"Edificação OpenStreetMap",polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:0,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,extrudedHeight:Math.max(4,Math.min(h,120)),extrudedHeightReference:Cesium.HeightReference.RELATIVE_TO_GROUND,material:Cesium.Color.fromCssColorString("#b7b2a8").withAlpha(.88),outline:true,outlineColor:Cesium.Color.fromCssColorString("#343b43")}}));});mapa.scene.requestRender();
 }).catch(e=>console.warn("Prédios OSM indisponíveis nesta área:",e)).finally(()=>{carregandoPredios=false;});
 }
-function ajustarMapa(){if(!mapa||mapa.isDestroyed())return;const m=MISSOES[faseAtual];mapa.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(m.origem[0],m.origem[1],1500),orientation:{heading:0,pitch:Cesium.Math.toRadians(-48),roll:0},duration:1});colocarMarcadores(m.origem,m.destino);carregarPrediosOSM(m.origem);}
+function ajustarMapa(){if(!mapa||mapa.isDestroyed())return;const m=MISSOES[faseAtual];mapa.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(m.origem[0],m.origem[1],4200),orientation:{heading:0,pitch:Cesium.Math.toRadians(-65),roll:0},duration:1});colocarMarcadores(m.origem,m.destino);carregarPrediosOSM(m.origem);}
 function distanciaMetros(a,b){const r=Math.PI/180,dl=(b[1]-a[1])*r,dg=(b[0]-a[0])*r,l1=a[1]*r,l2=b[1]*r,h=Math.sin(dl/2)**2+Math.cos(l1)*Math.cos(l2)*Math.sin(dg/2)**2;return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
-function moverCameraParaJogador(){if(!mapa||!posicaoJogador)return;const alvo=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],1.35);mapa.camera.lookAt(alvo,new Cesium.HeadingPitchRange(mapa.camera.heading,Cesium.Math.toRadians(-18),42));mapa.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);}
+function moverCameraParaJogador(){if(!mapa||!posicaoJogador)return;const alvo=Cesium.Cartesian3.fromDegrees(posicaoJogador[0],posicaoJogador[1],1.35);mapa.camera.lookAt(alvo,new Cesium.HeadingPitchRange(mapa.camera.heading,Cesium.Math.toRadians(-58),520));mapa.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);}
 function interpolarCoordenada(inicio, fim, proporcao) {
   return [
     inicio[0] + (fim[0] - inicio[0]) * proporcao,
