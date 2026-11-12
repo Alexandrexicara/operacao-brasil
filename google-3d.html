@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Missão Brasil — Teste Google 3D</title>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.105/Build/Cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    html,body,#google-3d{width:100%;height:100%;margin:0;overflow:hidden;background:#080d14}
+    #painel-google{position:absolute;z-index:20;top:12px;left:12px;max-width:min(440px,calc(100vw - 24px));padding:14px;background:#090d16ed;border:1px solid #ff6b00;border-radius:12px;color:#fff;font:14px Arial,sans-serif}
+    #painel-google h1{font-size:18px;margin:0 0 8px;color:#ff9a36}
+    #painel-google p{line-height:1.4;margin:6px 0 10px}
+    #painel-google input{width:100%;box-sizing:border-box;padding:9px;margin:4px 0;border-radius:6px;border:1px solid #657080;background:#111b29;color:white}
+    #painel-google button{padding:9px 12px;margin:4px 4px 4px 0;border:0;border-radius:6px;background:#e85d04;color:#fff;font-weight:bold}
+    #status-google{color:#b8f5b8}
+    #voltar-jogo{display:inline-block;color:#fff;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div id="google-3d"></div>
+  <section id="painel-google">
+    <h1>MISSÃO BRASIL — GOOGLE 3D REAL</h1>
+    <p>Teste técnico do cenário fotorrealista do Google. Esta tela não altera nem substitui as missões existentes.</p>
+    <label for="coordenadas">Destino (latitude, longitude)</label>
+    <input id="coordenadas" value="-19.72, -43.93" autocomplete="off">
+    <button id="ir-local">IR PARA O LOCAL</button>
+    <button id="voltar-inicio">VOLTAR À VISÃO INICIAL</button>
+    <p id="status-google">Preparando visualização 3D...</p>
+    <a id="voltar-jogo" href="/">← Voltar ao jogo</a>
+  </section>
+  <script type="module" src="/google-3d.js"></script>
+</body>
+</html>
