@@ -149,7 +149,11 @@ function inicializarMapa() {
   });
 
   mapa.on("click", moverJogador);
-  mapa.on("error", evento => console.warn("Aviso do mapa:", evento?.error?.message || evento));
+  mapa.on("error", evento => {
+    console.warn("Aviso do mapa:", evento?.error?.message || evento);
+    const status = document.getElementById("status-missao");
+    if (status && jogoAtivo) status.textContent = "⚠️ O mapa teve uma falha ao carregar. Verifique sua conexão e recarregue o jogo.";
+  });
 }
 
 function ativarTerreno3D() {
@@ -382,7 +386,7 @@ function atualizarProgresso() {
   const radar = document.getElementById("radar-risco");
   if (radar) radar.classList.toggle("ativo", restante < 700);
   const textoRadar = document.querySelector(".radar-texto");
-  if (textoRadar) textoRadar.textContent = "📡 " + formatarDistancia(restante);
+  if (textoRadar) textoRadar.textContent = "🎯 " + formatarDistancia(restante);
 }
 
 function formatarDistancia(metros) {
@@ -470,6 +474,10 @@ function proximaMissao() {
 
 function selecionarFase(indice) {
   if (!Number.isInteger(indice) || indice < 0 || indice >= MISSOES.length || !jogoAtivo) return;
+  if (indice > 0 && !missoesConcluidas.includes(indice - 1)) {
+    document.getElementById("status-missao").textContent = "🔒 Conclua a missão anterior para liberar esta operação.";
+    return;
+  }
   carregarFase(indice);
   montarListaFases();
 }
@@ -490,11 +498,14 @@ function montarListaFases() {
   MISSOES.forEach((missao, indice) => {
     const elemento = document.createElement("button");
     elemento.type = "button";
+    const bloqueada = indice > 0 && !missoesConcluidas.includes(indice - 1);
+    elemento.disabled = bloqueada;
     elemento.className = "fase-item" +
       (missoesConcluidas.includes(indice) ? " concluida" : "") +
-      (indice === faseAtual ? " atual" : "");
-    elemento.textContent = (missoesConcluidas.includes(indice) ? "✅ " : "⬜ ") + (indice + 1) + ". " + missao.nome;
-    elemento.setAttribute("aria-label", "Selecionar missão " + (indice + 1) + ": " + missao.nome);
+      (indice === faseAtual ? " atual" : "") +
+      (bloqueada ? " bloqueada" : "");
+    elemento.textContent = (missoesConcluidas.includes(indice) ? "✅ " : bloqueada ? "🔒 " : "⬜ ") + (indice + 1) + ". " + missao.nome;
+    elemento.setAttribute("aria-label", (bloqueada ? "Missão bloqueada " : "Selecionar missão ") + (indice + 1) + ": " + missao.nome);
     elemento.addEventListener("click", () => selecionarFase(indice));
     lista.appendChild(elemento);
   });
