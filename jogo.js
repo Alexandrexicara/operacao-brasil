@@ -1,3 +1,4 @@
+// O token do Cesium ion é injetado pelo ambiente de produção do Netlify.
 let Cesium=null;
 function carregarCesium(){return new Promise((resolve,reject)=>{
 if(window.Cesium){Cesium=window.Cesium;resolve(Cesium);return;}
