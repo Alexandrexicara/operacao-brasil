@@ -121,7 +121,7 @@ const status=document.getElementById("status-missao");
 try{
 if(status)status.textContent="🌍 Preparando o mundo 3D aberto...";
 const M=await carregarCesium();
-mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:new M.EllipsoidTerrainProvider(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",credit:"Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}),requestRenderMode:false});
+mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:await (async()=>{const token=import.meta.env.VITE_CESIUM_ION_TOKEN;if(token)M.Ion.defaultAccessToken=token;try{return token?await M.createWorldTerrainAsync({requestVertexNormals:true,requestWaterMask:true}):new M.EllipsoidTerrainProvider();}catch(erroTerreno){console.warn("Terreno Cesium ion indisponível; mantendo terreno básico:",erroTerreno);return new M.EllipsoidTerrainProvider();}})(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",credit:"Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}),requestRenderMode:false});
 mapa.scene.globe.show=true;
 mapa.scene.globe.baseColor=M.Color.fromCssColorString("#263746");
 mapa.scene.globe.depthTestAgainstTerrain=false;
