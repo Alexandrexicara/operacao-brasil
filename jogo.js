@@ -122,7 +122,19 @@ const status=document.getElementById("status-missao");
 try{
 if(status)status.textContent="🌍 Preparando o mundo 3D aberto...";
 const M=await carregarCesium();
-mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:await (async()=>{const token=import.meta.env.VITE_CESIUM_ION_TOKEN;if(token)M.Ion.defaultAccessToken=token;try{return token?await M.createWorldTerrainAsync({requestVertexNormals:true,requestWaterMask:true}):new M.EllipsoidTerrainProvider();}catch(erroTerreno){console.warn("Terreno Cesium ion indisponível; mantendo terreno básico:",erroTerreno);return new M.EllipsoidTerrainProvider();}})(),imageryProvider:new M.UrlTemplateImageryProvider({url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",credit:"Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}),requestRenderMode:false});
+const token=import.meta.env.VITE_CESIUM_ION_TOKEN;
+if(!token)throw new Error("Token Cesium ion não foi incluído no build do Netlify (VITE_CESIUM_ION_TOKEN).");
+M.Ion.defaultAccessToken=token;
+if(status)status.textContent="⛰️ Conectando ao Cesium ion: terreno e imagens de satélite...";
+const terreno=await M.createWorldTerrainAsync({requestVertexNormals:true,requestWaterMask:true});
+let imagem;
+try{
+ imagem=await M.createWorldImageryAsync();
+}catch(erroImagemIon){
+ console.warn("Imagem Cesium ion indisponível; usando satélite Esri:",erroImagemIon);
+ imagem=new M.UrlTemplateImageryProvider({url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",credit:"Tiles © Esri"});
+}
+mapa=new M.Viewer("mapa",{animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:true,infoBox:false,selectionIndicator:false,terrainProvider:terreno,imageryProvider:imagem,requestRenderMode:false});
 mapa.scene.globe.show=true;
 mapa.scene.globe.baseColor=M.Color.fromCssColorString("#263746");
 mapa.scene.globe.depthTestAgainstTerrain=false;
@@ -136,12 +148,20 @@ camadaEsri.imageryProvider.errorEvent.addEventListener(()=>{
  mapa.imageryLayers.addImageryProvider(new M.UrlTemplateImageryProvider({url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",maximumLevel:19,credit:"© OpenStreetMap contributors"}));
 });
 mapa.scene.globe.depthTestAgainstTerrain=false;mapa.scene.screenSpaceCameraController.minimumZoomDistance=120;mapa.scene.screenSpaceCameraController.maximumZoomDistance=250000;mapa.scene.globe.enableLighting=true;
+try{
+ const edificios3D=await M.createOsmBuildingsAsync();
+ mapa.scene.primitives.add(edificios3D);
+ console.info("Edifícios 3D do Cesium ion carregados.");
+}catch(erroEdificios){
+ console.warn("Camada global de edifícios 3D indisponível; mantendo edifícios OSM locais:",erroEdificios);
+}
+
 handlerMapa=new M.ScreenSpaceEventHandler(mapa.scene.canvas);
 handlerMapa.setInputAction(e=>{if(!jogoAtivo)return;const cart=mapa.camera.pickEllipsoid(e.position,mapa.scene.globe.ellipsoid);if(!cart)return;const c=M.Cartographic.fromCartesian(cart);iniciarDeslocamento([M.Math.toDegrees(c.longitude),M.Math.toDegrees(c.latitude)]);},M.ScreenSpaceEventType.LEFT_CLICK);
 const missao=MISSOES[faseAtual];await mapa.camera.flyTo({destination:M.Cartesian3.fromDegrees(missao.origem[0],missao.origem[1],4200),orientation:{heading:0,pitch:M.Math.toRadians(-65),roll:0},duration:1.2});
 mapa.scene.globe.baseColor=M.Color.fromCssColorString("#263746");
 colocarMarcadores(missao.origem,missao.destino);carregarPrediosOSM(missao.origem);
-if(status)status.textContent="🌎 Mapa 3D aberto carregado. Clique no mapa ou use WASD para se deslocar.";
+if(status)status.textContent="🌎 Terreno 3D + satélite carregados. Clique no mapa ou use WASD para se deslocar.";
 }catch(erro){console.error("Falha ao iniciar CesiumJS:",erro);if(status)status.textContent="⚠️ Não foi possível carregar o mapa 3D. Verifique a conexão e recarregue.";}
 }
 function carregarPrediosOSM(centro){
